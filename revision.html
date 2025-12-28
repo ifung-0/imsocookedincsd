@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSD Exam Revision Dashboard | 公民與社會發展科温習儀表板</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts: Noto Sans TC for Traditional Chinese -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Markdown Parser for AI responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Chosen Palette: Warm Academics -->
+    <!-- 
+         Background: #F9FAFB (Cool Gray 50) - Clean, paper-like.
+         Primary: #1E3A8A (Blue 900) - Authoritative, academic.
+         Secondary: #B45309 (Amber 700) - Highlights, important alerts.
+         Text: #374151 (Gray 700) - Readable, soft black.
+         Card BG: #FFFFFF (White)
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#E0E7FF',
+                            DEFAULT: '#1E3A8A',
+                            dark: '#172554',
+                            accent: '#B45309',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'fade-in-up': 'fadeInUp 0.3s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Chart Container Styles */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width for larger screens */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        /* Hide scrollbar for clean horizontal scrolling if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Chat Styles */
+        .chat-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .chat-bubble-user {
+            background-color: #1E3A8A;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-bubble-ai {
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            color: #374151;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #9CA3AF;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        /* Markdown Styles within AI Chat */
+        .prose p { margin-bottom: 0.5em; }
+        .prose ul { list-style-type: disc; padding-left: 1.2em; margin-bottom: 0.5em; }
+        .prose strong { font-weight: 600; color: #1E3A8A; }
+    </style>
+
+    <!-- Application Structure Plan: 
+         1. Header: Exam Title, Countdown, NEW "Share" Button.
+         2. Navigation: Tabs for Analysis, Predictions, Strategies, Checklist, AI Assistant.
+         3. Content Area: Dynamic JS rendering.
+         4. Share Modal: Instructions on how to host the file online.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-brand text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-4 md:mb-0 text-center md:text-left">
+                <h1 class="text-xl md:text-2xl font-bold">公民與社會發展科 (CSD) 考試温習儀表板</h1>
+                <p class="text-sm text-brand-light opacity-90">Citizenship and Social Development Exam Revision Dashboard</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-3 items-center">
+                <div class="text-center md:text-right bg-brand-dark px-4 py-2 rounded-lg shadow-inner">
+                    <p class="text-xs text-gray-300 uppercase tracking-widest">目標考試 Target Exam</p>
+                    <p class="font-bold text-lg">中四上學期 (2026年1月)</p>
+                </div>
+                <button onclick="showShareModal()" class="bg-brand-accent hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow transition-colors flex items-center gap-2">
+                   <!-- Icon: Share -->
+                   <span class="text-lg">🔗</span>
+                   分享 Share
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <nav class="container mx-auto px-4 mt-4">
+            <div class="flex space-x-1 overflow-x-auto no-scrollbar" id="nav-container">
+                <!-- Nav items injected by JS -->
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main id="app-content" class="flex-grow container mx-auto px-4 py-6">
+        <!-- Dynamic Content Injected Here -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="container mx-auto px-4 py-6 text-center text-sm text-gray-500">
+            <p>Based on 2526 T1S4CSD Exam Revision Notes & Past Paper Analysis</p>
+            <p>Powered by Gemini 2.5 Flash • 基於 2526 年度考試備忘及歷屆試卷分析</p>
+        </div>
+    </footer>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 animate-fade-in-up">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-brand flex items-center gap-2">
+                    <span>🚀</span> 如何與朋友分享？ How to Share
+                </h3>
+                <button onclick="hideShareModal()" class="text-gray-400 hover:text-red-500 font-bold text-xl px-2">
+                    &times;
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p class="font-bold text-blue-900 mb-1">方法 1: 直接傳送檔案 (Method 1: Send File)</p>
+                    <p class="text-sm text-blue-700 leading-relaxed">這個網頁只是一個 HTML 檔案。你可以直接把電腦上的 <code>revision.html</code> 檔案經 <strong>WhatsApp</strong>、<strong>AirDrop</strong> 或<strong>電郵</strong>傳給朋友。他們打開就能用！</p>
+                </div>
+
+                <div class="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                    <p class="font-bold text-orange-900 mb-1">方法 2: 變成網址連結 (Method 2: Get a URL)</p>
+                    <p class="text-sm text-orange-700 mb-2">想朋友只需點擊連結？推薦使用免費工具：</p>
+                    <ol class="list-decimal pl-5 text-sm text-orange-800 space-y-1">
+                        <li>前往 <strong>Tiiny.host</strong> 或 <strong>Netlify Drop</strong>。</li>
+                        <li>將你的 <code>revision.html</code> 檔案拖進去。</li>
+                        <li>它會即時給你一個網址 (例如 <code>my-csd.tiiny.site</code>)。</li>
+                        <li>把網址發給朋友即可！(API Key 已內置，他們無需設定)。</li>
+                    </ol>
+                </div>
+                
+                <div class="text-center mt-6">
+                    <button onclick="hideShareModal()" class="bg-brand text-white hover:bg-brand-dark font-bold py-2 px-8 rounded-full transition-colors shadow-lg">
+                        明白 Got it
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Data & Logic -->
+    <script>
+        // --- API CONFIGURATION ---
+        const apiKey = "AIzaSyAXHHHbw6g7g8nYrS8VhDyPt6di16dI-q0"; // Key Integrated
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        
+        // System Prompt for CSD Teacher Persona
+        const CSD_SYSTEM_PROMPT = `
+        You are a supportive and expert Hong Kong Citizenship and Social Development (CSD) teacher. 
+        You are helping a Secondary 4 student revise for their Term 1 Exam based on "Theme 1: One Country, Two Systems".
+        
+        Crucial Syllabus Context:
+        1. Constitutional Relationship: HKSAR powers come from Central Authorization (Basic Law). Constitution is the parent law.
+        2. Executive & Legislative: They regulate (check) and cooperate with each other. Key examples: Budget approval, Policy Address, Questioning officials.
+        3. Judicial Independence: Judges adjudicate cases independently, free from interference. Judges have immunity.
+        4. National Security: "One Country" is the prerequisite for "Two Systems". Security stability leads to economic prosperity.
+        5. External Affairs: HK participates in int'l orgs (like APEC, WTO) using the name "Hong Kong, China".
+        
+        Behavior Guidelines:
+        - Be encouraging but precise with terminology.
+        - Use Traditional Chinese mixed with English Key Terms.
+        - If generating a quiz, ensure it is in valid JSON format.
+        `;
+
+        // --- DATA STORE ---
+        const appData = {
+            overview: {
+                intro: {
+                    zh: "本頁面根據《2526 考試備忘》及歷屆試卷分析，為你提供數據化的温習策略。以下圖表展示了十大熱門課題的出現頻率，助你分配温習時間。",
+                    en: "This page provides a data-driven revision strategy based on the '2526 Revision Notes' and past paper analysis. The charts below show the frequency of the top 10 topics to help you allocate study time."
+                },
+                topTopics: [
+                    { rank: 1, topicZh: "行政與立法機關關係", topicEn: "Exec & Leg Relationship", freq: 95, label: "極高 Very High" },
+                    { rank: 2, topicZh: "司法獨立", topicEn: "Judicial Independence", freq: 90, label: "高 High" },
+                    { rank: 3, topicZh: "對外事務高度自治", topicEn: "External Affairs Autonomy", freq: 85, label: "高 High" },
+                    { rank: 4, topicZh: "一國兩制優勢", topicEn: "Benefits of 1C2S", freq: 80, label: "中高 Med-High" },
+                    { rank: 5, topicZh: "國家安全與穩定", topicEn: "National Security & Stability", freq: 70, label: "中 Medium" },
+                    { rank: 6, topicZh: "中央對港授權", topicEn: "Central Authorization", freq: 65, label: "中 Medium" },
+                    { rank: 7, topicZh: "法治概念", topicEn: "Rule of Law Concepts", freq: 60, label: "中 Medium" },
+                    { rank: 8, topicZh: "愛國者治港", topicEn: "Patriots Administering HK", freq: 55, label: "中 Medium" },
+                    { rank: 9, topicZh: "居民權利 (福利)", topicEn: "Residents' Rights (Welfare)", freq: 45, label: "中低 Low-Med" },
+                    { rank: 10, topicZh: "普通法制度", topicEn: "Common Law System", freq: 40, label: "中低 Low-Med" }
+                ]
+            },
+            predictions: {
+                intro: {
+                    zh: "綜合考試備忘的「DBQ 提示」及過往試題趨勢，以下是本次考試最可能出現的五大課題。",
+                    en: "Combining the 'DBQ Hints' from the revision notes and past paper trends, these are the Top 5 topics most likely to appear."
+                },
+                items: [
+                    {
+                        id: 1,
+                        titleZh: "憲制關係 (DBQ 重點)",
+                        titleEn: "Constitutional Relationship (DBQ Focus)",
+                        tag: "DBQ ALERT",
+                        whyZh: "考試備忘明確指出：「DBQ：重點 2 (國家和香港憲制關係)」。這是最明確的考試提示。",
+                        whyEn: "The revision notes explicitly state: 'DBQ: Focus 2'. This is the clearest hint available.",
+                        studyZh: "權力來源 (中央授權)、憲法與基本法關係 (母法與子法)、中央擁有的權力 (任命特首、外交)。",
+                        studyEn: "Source of Power (Central Authorization), Constitution vs Basic Law (Parent/Child), Central Powers (Appointing CE, Foreign Affairs)."
+                    },
+                    {
+                        id: 2,
+                        titleZh: "行政與立法機關的關係",
+                        titleEn: "Executive & Legislative Relationship",
+                        tag: "TREND",
+                        whyZh: "連續兩年 (23/24, 24/25) 作為 6 分長題目出現。",
+                        whyEn: "Appeared as a 6-mark long question in both recent years (23/24, 24/25).",
+                        studyZh: "互相配合 (官員列席、通過法案) vs 互相制約 (質詢政府、簽署/拒絕法案)。",
+                        studyEn: "Cooperation (Officials attending, passing bills) vs Checks (Questioning govt, signing/refusing bills)."
+                    },
+                    {
+                        id: 3,
+                        titleZh: "對外事務的高度自治",
+                        titleEn: "High Degree of Autonomy in External Affairs",
+                        tag: "RECURRING",
+                        whyZh: "兩年試卷均有出現 (APEC/貿易協定)。",
+                        whyEn: "Appeared in both past papers (APEC/Trade Agreements).",
+                        studyZh: "必須記住「中國香港」名義。香港可單獨簽署自由貿易協定。",
+                        studyEn: "Must memorize 'Hong Kong, China'. HK can sign Free Trade Agreements independently."
+                    },
+                    {
+                        id: 4,
+                        titleZh: "司法獨立",
+                        titleEn: "Judicial Independence",
+                        tag: "CORE",
+                        whyZh: "法治課題最常考概念。",
+                        whyEn: "Most frequently tested concept in Rule of Law.",
+                        studyZh: "審判不受干預、法官享有的法律保障 (免受起訴)。",
+                        studyEn: "Adjudicating without interference, immunity of judges."
+                    },
+                    {
+                        id: 5,
+                        titleZh: "國家安全與營商環境",
+                        titleEn: "National Security & Business Env.",
+                        tag: "DATA",
+                        whyZh: "常與數據題結合 (資金流向)。",
+                        whyEn: "Often linked with data questions (Capital flow).",
+                        studyZh: "引用數據證明國安法後資金無流走，投資者信心增加 (穩定=繁榮)。",
+                        studyEn: "Cite data proving capital didn't flee after NSL, confidence increased (Stability = Prosperity)."
+                    }
+                ]
+            },
+            strategies: {
+                intro: {
+                    zh: "掌握常見題型的作答框架，能有效提升得分。",
+                    en: "Mastering the answering frameworks for common question types will effectively boost your score."
+                },
+                types: [
+                    {
+                        code: "Type A",
+                        nameZh: "資料支持題 (4分)",
+                        nameEn: "Data Support Question (4 marks)",
+                        exampleZh: "資料 A 如何支持「一國兩制保障繁榮」的看法？",
+                        exampleEn: "How does Source A support the view that '1C2S protects prosperity'?",
+                        steps: [
+                            { zh: "引用數據", en: "Quote Data", detailZh: "必須寫出具體數字 (例: 罪案跌 4.5%)", detailEn: "Must write specific numbers (e.g., crime dropped 4.5%)" },
+                            { zh: "解釋聯繫", en: "Explain Link", detailZh: "解釋數據如何代表繁榮/穩定", detailEn: "Explain how data represents prosperity/stability" },
+                            { zh: "結論", en: "Conclude", detailZh: "因此支持該看法", detailEn: "Therefore supports the view" }
+                        ]
+                    },
+                    {
+                        code: "Type B",
+                        nameZh: "關係解釋題 (6分)",
+                        nameEn: "Relationship Explanation (6 marks)",
+                        exampleZh: "解釋行政與立法機關如何互相制約及配合。",
+                        exampleEn: "Explain how Exec & Leg organs check and cooperate.",
+                        steps: [
+                            { zh: "分段作答", en: "Structure", detailZh: "一段寫「配合」，一段寫「制約」", detailEn: "One paragraph for 'Cooperation', one for 'Checks'" },
+                            { zh: "配合例子", en: "Cooperation ex.", detailZh: "官員列席會議、解答質詢", detailEn: "Officials attending meetings, answering questions" },
+                            { zh: "制約例子", en: "Checks ex.", detailZh: "立法會審批撥款、特首簽署法案", detailEn: "LegCo approves funding, CE signs bills" }
+                        ]
+                    },
+                    {
+                        code: "Type C",
+                        nameZh: "數據描述題 (4分)",
+                        nameEn: "Describe Changes (4 marks)",
+                        exampleZh: "描述罪案數字的兩個變化。",
+                        exampleEn: "Describe two changes in crime figures.",
+                        steps: [
+                            { zh: "總體趨勢", en: "General Trend", detailZh: "整體上升或下降", detailEn: "Overall up or down" },
+                            { zh: "特殊例外", en: "Exception", detailZh: "指出相反的項目 (例: 唯獨暴力罪案上升)", detailEn: "Point out opposite items (e.g., only violent crime rose)" },
+                            { zh: "數據計算", en: "Calculation", detailZh: "必須計算差額或百分比", detailEn: "Must calculate difference or percentage" }
+                        ]
+                    }
+                ]
+            },
+            checklist: {
+                intro: {
+                    zh: "基於《2526 考試備忘》的温習清單。",
+                    en: "Revision checklist based on '2526 Revision Notes'."
+                },
+                items: [
+                    { id: "c1", cat: "Focus 2", textZh: "憲法與基本法的關係 (母法/授權)", textEn: "Constitution vs Basic Law relation" },
+                    { id: "c2", cat: "Focus 2", textZh: "中央直接行使的三項權力 (外交/國防/任命)", textEn: "3 Powers of Central Govt" },
+                    { id: "c3", cat: "Focus 4", textZh: "行政立法互相配合例子", textEn: "Example of Exec-Leg Cooperation" },
+                    { id: "c4", cat: "Focus 4", textZh: "行政立法互相制約例子", textEn: "Example of Exec-Leg Checks" },
+                    { id: "c5", cat: "Focus 5", textZh: "司法獨立的兩個主要元素", textEn: "2 Elements of Judicial Independence" },
+                    { id: "c6", cat: "Focus 1", textZh: "香港對外事務使用的名稱 (中國香港)", textEn: "Name used in External Affairs" },
+                    { id: "c7", cat: "Focus 3", textZh: "國家安全重點領域", textEn: "Key fields of National Security" }
+                ]
+            }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let currentTab = 'analysis';
+        let checklistState = JSON.parse(localStorage.getItem('csdChecklist')) || {};
+        let chatHistory = [];
+        let isGenerating = false;
+
+        // --- DOM ELEMENTS ---
+        const navContainer = document.getElementById('nav-container');
+        const appContent = document.getElementById('app-content');
+
+        // --- NAVIGATION CONFIG ---
+        const tabs = [
+            { id: 'analysis', labelZh: '數據分析', labelEn: 'Analysis' },
+            { id: 'predictions', labelZh: '必考預測', labelEn: 'Predictions' },
+            { id: 'strategies', labelZh: '答題技巧', labelEn: 'Strategies' },
+            { id: 'checklist', labelZh: '温習清單', labelEn: 'Checklist' },
+            { id: 'ai-assistant', labelZh: '✨ AI 溫習助手', labelEn: 'AI Assistant' }
+        ];
+        
+        // --- MODAL LOGIC ---
+        function showShareModal() {
+            const modal = document.getElementById('share-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex', 'animate-fade-in');
+        }
+
+        function hideShareModal() {
+            const modal = document.getElementById('share-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex', 'animate-fade-in');
+        }
+
+        // --- GEMINI API FUNCTION ---
+        async function callGemini(userPrompt, systemInstruction = CSD_SYSTEM_PROMPT) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < delays.length; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't generate a response.";
+                } catch (error) {
+                    if (i === delays.length - 1) return "Error connecting to AI service. Please try again later.";
+                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function init() {
+            renderNav();
+            renderContent();
+        }
+
+        function renderNav() {
+            navContainer.innerHTML = tabs.map(tab => `
+                <button 
+                    onclick="switchTab('${tab.id}')"
+                    class="flex-shrink-0 px-6 py-3 rounded-t-lg font-medium transition-colors duration-200 border-b-2 
+                    ${currentTab === tab.id 
+                        ? 'bg-white text-brand border-brand-accent' 
+                        : 'bg-brand-dark/20 text-brand-light border-transparent hover:bg-brand-dark/40'}"
+                >
+                    <span class="block text-sm font-bold flex items-center justify-center gap-1">
+                        ${tab.labelZh}
+                    </span>
+                    <span class="block text-xs opacity-80">${tab.labelEn}</span>
+                </button>
+            `).join('');
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            renderNav();
+            renderContent();
+        }
+
+        function renderContent() {
+            appContent.innerHTML = ''; // Clear
+            appContent.className = "flex-grow container mx-auto px-4 py-6 fade-in"; // Add animation
+
+            if (currentTab === 'analysis') renderAnalysis();
+            else if (currentTab === 'predictions') renderPredictions();
+            else if (currentTab === 'strategies') renderStrategies();
+            else if (currentTab === 'checklist') renderChecklist();
+            else if (currentTab === 'ai-assistant') renderAIAssistant();
+        }
+
+        // --- VIEW: AI ASSISTANT ---
+        function renderAIAssistant() {
+            const html = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh] lg:h-[700px]">
+                    <!-- Left: Quiz Generator -->
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+                        <div class="bg-gradient-to-r from-brand to-brand-light p-4 text-white">
+                            <h3 class="font-bold flex items-center gap-2">
+                                <span>✨</span> AI 試題生成器 (Quiz Gen)
+                            </h3>
+                            <p class="text-xs opacity-80">Generate practice MCQs</p>
+                        </div>
+                        <div class="p-6 flex-grow flex flex-col gap-4 overflow-y-auto">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">選擇課題 Select Topic:</label>
+                                <select id="quiz-topic-select" class="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:ring-2 focus:ring-brand focus:border-brand">
+                                    ${appData.overview.topTopics.map(t => `<option value="${t.topicZh}">${t.topicZh} (${t.topicEn})</option>`).join('')}
+                                </select>
+                            </div>
+                            <button onclick="generateQuiz()" id="btn-gen-quiz" class="w-full bg-brand-accent hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                                <span>⚡ 生成題目 Generate</span>
+                            </button>
+                            
+                            <!-- Quiz Display Area -->
+                            <div id="quiz-display" class="hidden flex-grow flex flex-col gap-4 mt-2 border-t pt-4">
+                                <!-- Quiz content injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Chat Tutor -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+                        <div class="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-brand flex items-center gap-2">
+                                    <span>💬</span> CSD 智能導師 (AI Tutor)
+                                </h3>
+                                <p class="text-xs text-gray-500">Ask about concepts (e.g., "Explain Checks and Balances")</p>
+                            </div>
+                            <button onclick="clearChat()" class="text-xs text-gray-400 hover:text-red-500 underline">Clear Chat</button>
+                        </div>
+                        
+                        <!-- Chat History -->
+                        <div id="chat-history" class="flex-grow p-4 overflow-y-auto bg-gray-50/50 flex flex-col">
+                            <div class="chat-bubble chat-bubble-ai">
+                                <div class="prose prose-sm">
+                                    你好！我是你的 CSD 溫習導師。👋<br>
+                                    你可以問我關於「一國兩制」、「憲法與基本法」、「政治體制」等問題。<br>
+                                    <span class="text-xs text-gray-400 italic">Hello! Ask me anything about the CSD exam scope.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="p-4 bg-white border-t border-gray-100">
+                            <form onsubmit="handleChatSubmit(event)" class="flex gap-2">
+                                <input type="text" id="chat-input" placeholder="問問題... (e.g. 什麼是司法獨立?)" 
+                                    class="flex-grow p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                                    autocomplete="off">
+                                <button type="submit" id="btn-send-chat" class="bg-brand text-white px-6 rounded-lg font-bold hover:bg-brand-dark transition-colors disabled:opacity-50">
+                                    Send
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            appContent.innerHTML = html;
+        }
+
+        // --- AI LOGIC: QUIZ GENERATOR ---
+        async function generateQuiz() {
+            const topic = document.getElementById('quiz-topic-select').value;
+            const display = document.getElementById('quiz-display');
+            const btn = document.getElementById('btn-gen-quiz');
+            
+            // UI Loading State
+            btn.disabled = true;
+            btn.innerHTML = `<span class="typing-indicator"><span></span><span></span><span></span></span> Generating...`;
+            display.classList.remove('hidden');
+            display.innerHTML = `<div class="animate-pulse space-y-3">
+                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+                <div class="h-10 bg-gray-200 rounded"></div>
+            </div>`;
+
+            const prompt = `Generate one multiple-choice question (MCQ) about "${topic}" for HK CSD subject. 
+            Return strictly raw JSON format (no markdown code blocks) with keys: 
+            "question" (string), "options" (array of 4 strings including A/B/C/D), "answerIndex" (0-3), "explanation" (string).`;
+
+            try {
+                let text = await callGemini(prompt);
+                // Clean markdown code blocks if present
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const quizData = JSON.parse(text);
+                
+                renderQuizCard(quizData);
+            } catch (e) {
+                display.innerHTML = `<p class="text-red-500 text-sm">Error generating quiz. Please try again. (${e.message})</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>⚡ 生成題目 Generate</span>`;
+            }
+        }
+
+        function renderQuizCard(data) {
+            const display = document.getElementById('quiz-display');
+            display.innerHTML = `
+                <div class="bg-white p-4 rounded border border-gray-200 shadow-sm fade-in">
+                    <p class="font-bold text-gray-800 mb-4 text-sm">${data.question}</p>
+                    <div class="space-y-2">
+                        ${data.options.map((opt, idx) => `
+                            <button onclick="checkAnswer(${idx}, ${data.answerIndex}, '${btoa(unescape(encodeURIComponent(data.explanation)))}', this)" 
+                                class="w-full text-left p-3 rounded border border-gray-200 text-sm hover:bg-gray-50 transition-colors quiz-opt-btn">
+                                ${opt}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="quiz-feedback" class="hidden mt-4 p-3 rounded text-sm bg-gray-50 border border-gray-200"></div>
+                </div>
+            `;
+        }
+
+        window.checkAnswer = function(selected, correct, encodedExpl, btn) {
+            const explanation = decodeURIComponent(escape(atob(encodedExpl)));
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const allBtns = document.querySelectorAll('.quiz-opt-btn');
+            
+            // Disable all buttons
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selected === correct) {
+                btn.classList.add('bg-green-100', 'border-green-500', 'text-green-800');
+                feedbackEl.innerHTML = `<p class="font-bold text-green-700">✅ 正確 Correct!</p><p class="mt-1 text-gray-600">${explanation}</p>`;
+            } else {
+                btn.classList.add('bg-red-100', 'border-red-500', 'text-red-800');
+                allBtns[correct].classList.add('bg-green-50', 'border-green-500', 'text-green-800');
+                feedbackEl.innerHTML = `<p class="font-bold text-red-700">❌ 錯誤 Wrong.</p><p class="mt-1 text-gray-600">${explanation}</p>`;
+            }
+            feedbackEl.classList.remove('hidden');
+            feedbackEl.classList.add('fade-in');
+        }
+
+        // --- AI LOGIC: CHAT TUTOR ---
+        async function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const btn = document.getElementById('btn-send-chat');
+            const history = document.getElementById('chat-history');
+            const userText = input.value.trim();
+
+            if (!userText) return;
+
+            // Add User Message
+            addChatBubble(userText, 'user');
+            input.value = '';
+            btn.disabled = true;
+
+            // Add Loading Bubble
+            const loadingId = 'loading-' + Date.now();
+            history.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="chat-bubble chat-bubble-ai">
+                    <div class="typing-indicator"><span></span><span></span><span></span></div>
+                </div>
+            `);
+            history.scrollTop = history.scrollHeight;
+
+            try {
+                const response = await callGemini(userText);
+                document.getElementById(loadingId).remove();
+                addChatBubble(response, 'ai');
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                addChatBubble("Sorry, I encountered an error. Please try again.", 'ai');
+            } finally {
+                btn.disabled = false;
+                // Keep focus on input for rapid chatting
+                setTimeout(() => input.focus(), 100); 
+            }
+        }
+
+        function addChatBubble(text, sender) {
+            const history = document.getElementById('chat-history');
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble chat-bubble-${sender} fade-in`;
+            
+            // Parse Markdown for AI, simple text for user
+            if (sender === 'ai') {
+                bubble.innerHTML = `<div class="prose prose-sm max-w-none">${marked.parse(text)}</div>`;
+            } else {
+                bubble.innerText = text;
+            }
+            
+            history.appendChild(bubble);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        window.clearChat = function() {
+            const history = document.getElementById('chat-history');
+            history.innerHTML = `
+                <div class="chat-bubble chat-bubble-ai">
+                    <div class="prose prose-sm">
+                        Chat cleared. How can I help you revise now?
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- VIEW: ANALYSIS (EXISTING) ---
+        function renderAnalysis() {
+            const html = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Intro Card -->
+                    <div class="md:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 class="text-xl font-bold text-brand mb-2">考試課題趨勢分析 Analysis Overview</h2>
+                        <p class="text-gray-600 mb-1">${appData.overview.intro.zh}</p>
+                        <p class="text-gray-400 text-sm italic">${appData.overview.intro.en}</p>
+                    </div>
+
+                    <!-- Chart 1: Topic Frequency -->
+                    <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-700 mb-4">十大熱門課題頻率 Top 10 Recurring Topics</h3>
+                        <div class="chart-container">
+                            <canvas id="topicChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- List: Top 3 Quick Look -->
+                    <div class="bg-brand-light/30 p-6 rounded-xl border border-brand/10">
+                        <h3 class="text-lg font-bold text-brand mb-4">出現頻率最高的 TOP 3</h3>
+                        <ul class="space-y-4">
+                            ${appData.overview.topTopics.slice(0,3).map((t, idx) => `
+                                <li class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-brand-accent">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-2xl text-brand-accent">#${idx+1}</span>
+                                        <span class="text-xs font-bold bg-brand text-white px-2 py-1 rounded-full">${t.label}</span>
+                                    </div>
+                                    <h4 class="font-bold text-gray-800">${t.topicZh}</h4>
+                                    <p class="text-xs text-gray-500">${t.topicEn}</p>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            appContent.innerHTML = html;
+            initTopicChart();
+        }
+
+        function initTopicChart() {
+            const ctx = document.getElementById('topicChart').getContext('2d');
+            const topics = appData.overview.topTopics;
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: topics.map(t => t.topicZh),
+                    datasets: [{
+                        label: '出現頻率估算 Frequency Score',
+                        data: topics.map(t => t.freq),
+                        backgroundColor: topics.map(t => t.freq >= 90 ? '#B45309' : (t.freq >= 60 ? '#1E3A8A' : '#9CA3AF')),
+                        borderRadius: 4,
+                        barThickness: 'flex',
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, max: 100 }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.raw}% - ${topics[ctx.dataIndex].topicEn}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- VIEW: PREDICTIONS (EXISTING) ---
+        function renderPredictions() {
+            const html = `
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 class="text-xl font-bold text-brand mb-2">五大必考預測 Top 5 Predictions</h2>
+                        <p class="text-gray-600 mb-1">${appData.predictions.intro.zh}</p>
+                        <p class="text-gray-400 text-sm italic">${appData.predictions.intro.en}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${appData.predictions.items.map(item => `
+                            <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow border-t-4 ${item.id === 1 ? 'border-brand-accent' : 'border-brand'}">
+                                <div class="p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <span class="inline-block px-3 py-1 text-xs font-bold rounded-full ${item.id === 1 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">
+                                            ${item.tag}
+                                        </span>
+                                        <span class="text-gray-300 font-bold text-4xl opacity-20">0${item.id}</span>
+                                    </div>
+                                    
+                                    <h3 class="text-lg font-bold text-gray-800 mb-1">${item.titleZh}</h3>
+                                    <p class="text-xs text-gray-500 mb-4 font-medium uppercase tracking-wide">${item.titleEn}</p>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <p class="text-xs font-bold text-gray-400 uppercase mb-1">原因 Why:</p>
+                                            <p class="text-sm text-gray-700 leading-snug mb-1">${item.whyZh}</p>
+                                            <p class="text-xs text-gray-400 italic">${item.whyEn}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-bold text-gray-400 uppercase mb-1">溫習重點 Study Focus:</p>
+                                            <div class="bg-gray-50 p-3 rounded text-sm text-gray-700 border-l-2 border-gray-300">
+                                                <p class="mb-1 font-medium">${item.studyZh}</p>
+                                                <p class="text-xs text-gray-500">${item.studyEn}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            appContent.innerHTML = html;
+        }
+
+        // --- VIEW: STRATEGIES (EXISTING) ---
+        function renderStrategies() {
+            const html = `
+                 <div class="max-w-4xl mx-auto space-y-6">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-brand mb-2">常見題型與作答策略</h2>
+                        <p class="text-gray-600">Common Question Types & Strategies</p>
+                    </div>
+
+                    ${appData.strategies.types.map((type, idx) => `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <button onclick="toggleStrategy(${idx})" class="w-full text-left p-5 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div>
+                                    <div class="flex items-center space-x-3 mb-1">
+                                        <span class="bg-brand text-white text-xs font-bold px-2 py-1 rounded">${type.code}</span>
+                                        <span class="font-bold text-gray-800">${type.nameZh}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 pl-11">${type.nameEn}</p>
+                                </div>
+                                <svg id="icon-${idx}" class="w-6 h-6 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            
+                            <div id="strategy-${idx}" class="hidden border-t border-gray-100">
+                                <div class="p-6">
+                                    <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+                                        <p class="text-xs font-bold text-blue-800 uppercase mb-2">題目例子 Example Question:</p>
+                                        <p class="text-sm text-blue-900 font-medium mb-1">${type.exampleZh}</p>
+                                        <p class="text-xs text-blue-600 italic">${type.exampleEn}</p>
+                                    </div>
+                                    
+                                    <h4 class="font-bold text-gray-700 mb-4 flex items-center">
+                                        <span class="w-2 h-2 bg-brand-accent rounded-full mr-2"></span>
+                                        作答步驟 Answering Steps
+                                    </h4>
+                                    
+                                    <div class="space-y-4 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+                                        ${type.steps.map((step, sIdx) => `
+                                            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                                <div class="flex items-center justify-center w-5 h-5 rounded-full border border-white bg-slate-300 group-[.is-active]:bg-brand text-white text-[10px] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                                                    ${sIdx + 1}
+                                                </div>
+                                                <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded border border-slate-200 shadow-sm">
+                                                    <div class="flex justify-between items-center mb-1">
+                                                        <span class="font-bold text-gray-800 text-sm">${step.zh}</span>
+                                                        <span class="text-xs text-gray-500">${step.en}</span>
+                                                    </div>
+                                                    <p class="text-xs text-gray-600 mt-1 pt-1 border-t border-gray-100">${step.detailZh}</p>
+                                                    <p class="text-[10px] text-gray-400 mt-0.5">${step.detailEn}</p>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            appContent.innerHTML = html;
+        }
+
+        window.toggleStrategy = function(idx) {
+            const content = document.getElementById(`strategy-${idx}`);
+            const icon = document.getElementById(`icon-${idx}`);
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                content.classList.add('block', 'fade-in');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                content.classList.remove('block', 'fade-in');
+                icon.classList.remove('rotate-180');
+            }
+        };
+
+        // --- VIEW: CHECKLIST (EXISTING) ---
+        function renderChecklist() {
+            const html = `
+                <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="bg-brand p-6 text-white text-center">
+                        <h2 class="text-xl font-bold">溫習進度清單</h2>
+                        <p class="text-sm opacity-80">Revision Checklist</p>
+                        <div class="mt-4 flex justify-center items-end space-x-2">
+                            <span id="progress-text" class="text-4xl font-bold text-brand-accent">0%</span>
+                            <span class="text-sm mb-1">Completed</span>
+                        </div>
+                        <div class="w-full bg-brand-dark/30 rounded-full h-2 mt-2">
+                            <div id="progress-bar" class="bg-brand-accent h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="p-2 md:p-6 divide-y divide-gray-100">
+                        ${appData.checklist.items.map(item => `
+                            <label class="flex items-start p-4 hover:bg-gray-50 cursor-pointer transition-colors group">
+                                <div class="flex items-center h-6">
+                                    <input type="checkbox" 
+                                        id="${item.id}" 
+                                        onchange="toggleCheck('${item.id}')"
+                                        ${checklistState[item.id] ? 'checked' : ''}
+                                        class="w-5 h-5 text-brand border-gray-300 rounded focus:ring-brand focus:ring-offset-0"
+                                    >
+                                </div>
+                                <div class="ml-4 text-sm leading-6">
+                                    <span class="inline-block px-2 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 rounded mb-1">
+                                        ${item.cat}
+                                    </span>
+                                    <p class="font-medium text-gray-900 group-hover:text-brand transition-colors ${checklistState[item.id] ? 'line-through opacity-50' : ''}" id="text-${item.id}">
+                                        ${item.textZh}
+                                    </p>
+                                    <p class="text-gray-500 text-xs ${checklistState[item.id] ? 'line-through opacity-50' : ''}" id="sub-${item.id}">
+                                        ${item.textEn}
+                                    </p>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 text-center">
+                         <button onclick="resetChecklist()" class="text-xs text-gray-400 hover:text-red-500 underline">Reset Progress 重置進度</button>
+                    </div>
+                </div>
+            `;
+            appContent.innerHTML = html;
+            updateProgress();
+        }
+
+        window.toggleCheck = function(id) {
+            checklistState[id] = !checklistState[id];
+            localStorage.setItem('csdChecklist', JSON.stringify(checklistState));
+            
+            // UI Update for strikethrough
+            const textEl = document.getElementById(`text-${id}`);
+            const subEl = document.getElementById(`sub-${id}`);
+            if(checklistState[id]) {
+                textEl.classList.add('line-through', 'opacity-50');
+                subEl.classList.add('line-through', 'opacity-50');
+            } else {
+                textEl.classList.remove('line-through', 'opacity-50');
+                subEl.classList.remove('line-through', 'opacity-50');
+            }
+            
+            updateProgress();
+        }
+
+        window.resetChecklist = function() {
+            checklistState = {};
+            localStorage.removeItem('csdChecklist');
+            renderChecklist();
+        }
+
+        function updateProgress() {
+            const total = appData.checklist.items.length;
+            const completed = Object.values(checklistState).filter(v => v).length;
+            const pct = Math.round((completed / total) * 100);
+            
+            document.getElementById('progress-text').innerText = `${pct}%`;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+        }
+
+        // --- INIT ---
+        init();
+
+    </script>
+</body>
+</html>
